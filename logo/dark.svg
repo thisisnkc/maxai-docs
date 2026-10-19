@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="152" height="28" viewBox="0 0 152 28" font-family="Geist, system-ui, sans-serif">
+  <rect x="1" y="1" width="26" height="26" rx="7" fill="#0d7a68"/>
+  <text x="14" y="19" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">M</text>
+  <text x="37" y="20" font-size="17" font-weight="650" letter-spacing="-0.34" fill="#f4f4f5">MaxAI</text>
+  <rect x="98.5" y="5.5" width="44" height="18" rx="9" fill="none" stroke="#3f3f46"/>
+  <text x="120.5" y="18.5" text-anchor="middle" font-size="12" font-weight="500" fill="#a1a1aa">Docs</text>
+</svg>

@@ -1,0 +1,52 @@
+---
+title: "Common mistakes"
+description: "The problems developers hit most often, and how to fix them."
+---
+
+## Using the endpoint URL as the SDK base URL
+
+The SDK adds the endpoint path itself. A `baseURL` ending in `/chat/completions` (or `/embeddings`) returns `404 {"detail":"Not Found"}`. curl, on the other hand, needs the full endpoint URL.
+
+<CodeGroup>
+```bash Python
+# Wrong: 404 {"detail":"Not Found"}
+client = OpenAI(base_url="https://maxai.knowmax.in/llm/chat/completions", api_key=key)
+
+# Right: base URL only
+client = OpenAI(base_url="https://maxai.knowmax.in/llm", api_key=key)
+```
+
+```javascript Node.js
+// Wrong: 404 {"detail":"Not Found"}
+const client = new OpenAI({ baseURL: "https://maxai.knowmax.in/llm/chat/completions", apiKey });
+
+// Right: base URL only
+const client = new OpenAI({ baseURL: "https://maxai.knowmax.in/llm", apiKey });
+```
+
+```bash cURL
+# curl takes the full endpoint URL
+curl "https://maxai.knowmax.in/llm/chat/completions" ...
+curl "https://maxai.knowmax.in/rag/embeddings" ...
+```
+</CodeGroup>
+
+## Model doesn't match the base URL
+
+km/maxai only runs on `/llm` and km/maxai2 only on `/llm2`. The other combination returns `404`.
+
+## Low max_tokens on km/maxai2
+
+Thinking uses up `max_tokens` before the answer starts. A low value returns an empty `content` with `finish_reason: "length"`. Raise `max_tokens` or lower `reasoning_effort`.
+
+Stop sequences have a similar effect: a `stop` value can match inside the thinking and end the reply before any answer is written.
+
+## OpenAI-only reasoning_effort values
+
+`high` and `minimal` return `500`. Use `none`, `low`, `medium` or `xhigh`.
+
+## Embeddings
+
+- Missing `"query: "` and `"passage: "` prefixes on e5 inputs.
+- Sending texts longer than 512 tokens: they are cut to 512 without an error.
+- Sending more than 32 texts to an embedding model, or more than 8 to the reranker.

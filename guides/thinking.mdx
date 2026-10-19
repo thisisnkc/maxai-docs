@@ -1,0 +1,148 @@
+---
+title: "Thinking"
+description: "km/maxai2 reasons before it answers. The thinking is returned separately from the answer, and you can control how much the model thinks."
+---
+
+## Reading the thinking
+
+The thinking is in `message.reasoning_content` and the answer in `message.content`.
+
+<CodeGroup>
+```python Python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://maxai.knowmax.in/llm2",
+    api_key=os.environ["MAXAI_API_KEY"],
+)
+
+completion = client.chat.completions.create(
+    model="km/maxai2",
+    messages=[{"role": "user", "content": "Is 1001 a prime number?"}],
+    reasoning_effort="low",
+    max_tokens=4000,
+)
+
+message = completion.choices[0].message
+print(getattr(message, "reasoning_content", None))  # thinking
+print(message.content)                              # answer
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://maxai.knowmax.in/llm2",
+  apiKey: process.env.MAXAI_API_KEY,
+});
+
+const completion = await client.chat.completions.create({
+  model: "km/maxai2",
+  messages: [{ role: "user", content: "Is 1001 a prime number?" }],
+  reasoning_effort: "low",
+  max_tokens: 4000,
+});
+
+const message = completion.choices[0].message;
+console.log(message.reasoning_content); // thinking (cast in TypeScript)
+console.log(message.content);           // answer
+```
+
+```bash cURL
+curl "https://maxai.knowmax.in/llm2/chat/completions" \
+  -H "Authorization: Bearer $MAXAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "km/maxai2",
+    "messages": [{"role": "user", "content": "Is 1001 a prime number?"}],
+    "reasoning_effort": "low",
+    "max_tokens": 4000
+  }'
+```
+</CodeGroup>
+
+## Reasoning effort
+
+| reasoning_effort | Behavior |
+| --- | --- |
+| `none` | Thinking off; `reasoning_content` is `null` |
+| `low` | Short thinking |
+| `medium` | Moderate thinking |
+| `xhigh` | Most thinking. Default. |
+
+<Warning>
+`high` and `minimal` are not supported and return HTTP `500` (`Unexpected reasoning effort ...`), even though they are valid on OpenAI.
+</Warning>
+
+## Turning thinking off
+
+Send `reasoning_effort: "none"`, or `chat_template_kwargs: {"enable_thinking": false}`. With thinking off, answers tend to be longer: in testing, 217 tokens against about 30 for the same question with thinking on.
+
+Don't use `reasoning_budget` (ignored; the model still thinks) or `reasoning_format: "none"` (puts the thinking inline in `content` inside `<think>` tags).
+
+## Thinking and max_tokens
+
+Thinking counts as output. It is included in `usage.completion_tokens` and uses up `max_tokens`. If `max_tokens` is too low, the reply stops mid-thinking with `content: ""` and `finish_reason: "length"`.
+
+<Tip>
+Set `max_tokens` generously on km/maxai2, or lower `reasoning_effort` when you need short replies.
+</Tip>
+
+## Streaming
+
+When streaming, `delta.reasoning_content` chunks arrive first, followed by `delta.content` chunks.
+
+<CodeGroup>
+```python Python
+stream = client.chat.completions.create(
+    model="km/maxai2",
+    messages=[{"role": "user", "content": "Is 1001 a prime number?"}],
+    max_tokens=4000,
+    stream=True,
+)
+
+for chunk in stream:
+    delta = chunk.choices[0].delta
+    thinking = getattr(delta, "reasoning_content", None)
+    if thinking:
+        print(thinking, end="")       # arrives first
+    elif delta.content:
+        print(delta.content, end="")  # then the answer
+```
+
+```javascript Node.js
+const stream = await client.chat.completions.create({
+  model: "km/maxai2",
+  messages: [{ role: "user", content: "Is 1001 a prime number?" }],
+  max_tokens: 4000,
+  stream: true,
+});
+
+for await (const chunk of stream) {
+  const delta = chunk.choices[0]?.delta;
+  if (delta?.reasoning_content) process.stdout.write(delta.reasoning_content);
+  else if (delta?.content) process.stdout.write(delta.content);
+}
+```
+
+```bash cURL
+curl -N "https://maxai.knowmax.in/llm2/chat/completions" \
+  -H "Authorization: Bearer $MAXAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "km/maxai2",
+    "messages": [{"role": "user", "content": "Is 1001 a prime number?"}],
+    "max_tokens": 4000,
+    "stream": true
+  }'
+```
+</CodeGroup>
+
+## Multi-turn
+
+In follow-up requests, send back only the assistant's `content`. Passing `reasoning_content` back is accepted but not needed.
+
+## SDK types
+
+`reasoning_content` is not part of the OpenAI SDK types. In JavaScript you can read it directly; in TypeScript, cast the message or delta. In Python, use `getattr(message, "reasoning_content", None)`.

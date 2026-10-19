@@ -1,0 +1,72 @@
+---
+title: "Streaming"
+description: "Set stream to true to receive the answer token by token as server-sent events, instead of waiting for the full response."
+---
+
+## Stream with the SDK
+
+The SDK returns an iterator of `chat.completion.chunk` objects. Each chunk carries the next piece of text in `choices[0].delta.content`.
+
+<CodeGroup>
+```python Python
+stream = client.chat.completions.create(
+    model="km/maxai",
+    messages=[{"role": "user", "content": "Explain tokens in two sentences."}],
+    stream=True,
+    stream_options={"include_usage": True},
+)
+
+for chunk in stream:
+    if chunk.choices and chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="", flush=True)
+    if chunk.usage:
+        print("\n", chunk.usage)
+```
+
+```javascript Node.js
+const stream = await client.chat.completions.create({
+  model: "km/maxai",
+  messages: [{ role: "user", content: "Explain tokens in two sentences." }],
+  stream: true,
+  stream_options: { include_usage: true },
+});
+
+for await (const chunk of stream) {
+  const text = chunk.choices[0]?.delta?.content;
+  if (text) process.stdout.write(text);
+  if (chunk.usage) console.log("\n", chunk.usage);
+}
+```
+
+```bash cURL
+curl -N "https://maxai.knowmax.in/llm/chat/completions" \
+  -H "Authorization: Bearer $MAXAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "km/maxai",
+    "messages": [{"role": "user", "content": "Explain tokens in two sentences."}],
+    "stream": true,
+    "stream_options": {"include_usage": true}
+  }'
+```
+</CodeGroup>
+
+## Event format
+
+Over HTTP the response has content type `text/event-stream`. Each event is a `data:` line holding a JSON chunk. The stream ends with `data: [DONE]`.
+
+```text Event stream
+data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"content":"Tokens"}}]}
+
+data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"content":" are"}}]}
+
+data: [DONE]
+```
+
+## Token usage
+
+Streaming responses don't include token usage by default. Set `stream_options: {"include_usage": true}` to receive a final chunk with `usage` and an empty `choices` list.
+
+<Info>
+On km/maxai2, thinking chunks arrive first in `delta.reasoning_content`. See [Thinking](/guides/thinking).
+</Info>

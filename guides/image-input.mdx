@@ -1,0 +1,119 @@
+---
+title: "Image input"
+description: "km/maxai can read images sent in the standard OpenAI format. km/maxai2 does not accept images."
+---
+
+## Send an image
+
+Make the message `content` a list with a `text` part and an `image_url` part. The image can be a base64 data URL or an https URL.
+
+<CodeGroup>
+```python Python
+import base64
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://maxai.knowmax.in/llm",   # km/maxai only
+    api_key=os.environ["MAXAI_API_KEY"],
+)
+
+with open("chart.png", "rb") as f:
+    image_b64 = base64.b64encode(f.read()).decode()
+
+completion = client.chat.completions.create(
+    model="km/maxai",
+    messages=[{
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "Describe this image."},
+            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_b64}"}},
+            # or: {"type": "image_url", "image_url": {"url": "https://example.com/chart.png"}}
+        ],
+    }],
+)
+
+print(completion.choices[0].message.content)
+```
+
+```javascript Node.js
+import fs from "node:fs";
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://maxai.knowmax.in/llm", // km/maxai only
+  apiKey: process.env.MAXAI_API_KEY,
+});
+
+const imageB64 = fs.readFileSync("chart.png").toString("base64");
+
+const completion = await client.chat.completions.create({
+  model: "km/maxai",
+  messages: [{
+    role: "user",
+    content: [
+      { type: "text", text: "Describe this image." },
+      { type: "image_url", image_url: { url: `data:image/png;base64,${imageB64}` } },
+      // or: { type: "image_url", image_url: { url: "https://example.com/chart.png" } }
+    ],
+  }],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+```bash cURL
+curl "https://maxai.knowmax.in/llm/chat/completions" \
+  -H "Authorization: Bearer $MAXAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "km/maxai",
+    "messages": [{
+      "role": "user",
+      "content": [
+        {"type": "text", "text": "Describe this image."},
+        {"type": "image_url", "image_url": {"url": "https://example.com/chart.png"}}
+      ]
+    }]
+  }'
+```
+</CodeGroup>
+
+## Image sources
+
+- **Data URL:** `data:image/png;base64,...`. Always works, because nothing is downloaded.
+- **https URL:** the MaxAI server downloads the image itself. PNG, JPEG and WebP are accepted.
+
+## One image per request
+
+A request can contain at most one image, and this counts the whole conversation. One image in each of two separate user messages also fails:
+
+```text
+400 At most 1 image(s) may be provided in one prompt.
+```
+
+<Tip>
+In chat apps, drop or replace earlier images from the history before sending a new one.
+</Tip>
+
+## Token cost
+
+Images count toward the 26,000-token context window, and the cost varies a lot with image size:
+
+| Image | Input tokens for the image |
+| --- | --- |
+| Small image (64×64 to 128×128 px) | About 260 |
+| 100×100 px | About 277 |
+| 239×178 px photo | About 3,350 |
+
+Check `usage.prompt_tokens` to see what an image cost.
+
+## km/maxai2
+
+km/maxai2 rejects every request that contains an image, whether it is a data URL or an https URL:
+
+```text
+500 {"message": "image input is not supported", "type": "server_error"}
+```
+
+Send image requests to km/maxai on `/llm`.

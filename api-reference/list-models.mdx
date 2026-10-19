@@ -1,0 +1,72 @@
+---
+title: "List models"
+description: "Returns the model served on a chat base URL. Each base URL lists only its own model."
+api: "GET https://maxai.knowmax.in/llm/models"
+---
+
+## Authorizations
+
+<ParamField header="Authorization" type="string" required>
+Bearer authentication header of the form `Bearer <MAXAI_API_KEY>`.
+</ParamField>
+
+## Response
+
+<ResponseField name="object" type="string">
+Always `list`.
+</ResponseField>
+
+<ResponseField name="data" type="object[]">
+One model object; `data[0].id` is `km/maxai` or `km/maxai2`.
+</ResponseField>
+
+<Info>
+Embedding base URLs have no model listing: `GET /rag/models` and `/rag2/models` return `404`.
+</Info>
+
+<RequestExample>
+```python Python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://maxai.knowmax.in/llm",
+    api_key=os.environ["MAXAI_API_KEY"],
+)
+
+for model in client.models.list():
+    print(model.id)
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://maxai.knowmax.in/llm",
+  apiKey: process.env.MAXAI_API_KEY,
+});
+
+const models = await client.models.list();
+for (const model of models.data) console.log(model.id);
+```
+
+```bash cURL
+curl "https://maxai.knowmax.in/llm/models" \
+  -H "Authorization: Bearer $MAXAI_API_KEY"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "object": "list",
+  "data": [
+    { "id": "km/maxai", "object": "model" }
+  ]
+}
+```
+
+```json 401
+{"error":"Unauthorized"}
+```
+</ResponseExample>

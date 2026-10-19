@@ -1,0 +1,40 @@
+---
+title: "Introduction"
+description: "MaxAI exposes an OpenAI-compatible Chat Completions API. Point the official OpenAI SDK for Python or Node.js at a MaxAI base URL and use it as you would with OpenAI, or call the endpoints directly with curl."
+---
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="zap" href="/quickstart">
+    Send your first chat completion with the OpenAI SDK.
+  </Card>
+  <Card title="Authentication" icon="key-round" href="/authentication">
+    One bearer API key for chat, embeddings and the reranker.
+  </Card>
+  <Card title="Chat completions" icon="message-square" href="/api-reference/create-chat-completion">
+    km/maxai for fast answers, km/maxai2 for thinking and tools.
+  </Card>
+  <Card title="Embeddings & reranking" icon="search" href="/guides/embeddings-reranking">
+    Multilingual vectors and relevance scoring for search and RAG.
+  </Card>
+</CardGroup>
+
+## Services and base URLs
+
+One API key works for every service. Each model has its own base URL. The SDK takes the **base URL**; curl takes the **full endpoint URL**.
+
+| Service | Model | SDK base URL | OpenAI SDK |
+| --- | --- | --- | --- |
+| Chat | `km/maxai` | `https://maxai.knowmax.in/llm` | Yes |
+| Chat, thinking | `km/maxai2` | `https://maxai.knowmax.in/llm2` | Yes |
+| Embeddings | multilingual-e5-large | `https://maxai.knowmax.in/rag` | Yes |
+| Embeddings | multilingual-e5-small | `https://maxai.knowmax.in/rag2` | Yes |
+| Reranker | bge-reranker-v2-m3 | `https://maxai.knowmax.in/tei` | No, HTTP only |
+
+## Endpoints
+
+| Method | Path | Description |
+| --- | --- | --- |
+| <span className="method-badge method-post">POST</span> | [\{base\}/chat/completions](/api-reference/create-chat-completion) | Chat completion, normal or streaming |
+| <span className="method-badge method-get">GET</span> | [\{base\}/models](/api-reference/list-models) | The model served on a chat base URL |
+| <span className="method-badge method-post">POST</span> | [\{base\}/embeddings](/api-reference/create-embeddings) | Embedding vectors |
+| <span className="method-badge method-post">POST</span> | [/tei/rerank](/api-reference/rerank) | Rerank texts against a query |

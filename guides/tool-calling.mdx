@@ -1,0 +1,96 @@
+---
+title: "Tool calling"
+description: "Both models support tool calling (OpenAI-compatible tools format). They differ in who decides when a tool is called."
+---
+
+## Comparison
+
+|  | km/maxai | km/maxai2 |
+| --- | --- | --- |
+| Model decides when to call a tool (`tool_choice` omitted or `"auto"`) | Not supported (returns `400`) | Supported |
+| Force a tool call (`tool_choice: "required"`) | Supported | Supported |
+| Force a specific function (`tool_choice: {"type": "function", "function": {"name": "..."}}`) | Supported | Supported |
+| Disable tools (`tool_choice: "none"`) | Supported | Supported |
+| Multiple tool calls in one reply | Supported | Supported |
+| Streaming with tools | Not supported (returns `400`) | Supported |
+| `finish_reason` when a tool is called | `"stop"` | `"tool_calls"` |
+
+## km/maxai: your code decides when to use tools
+
+km/maxai cannot decide on its own whether to call a tool. If a request includes `tools` without `tool_choice`, or with `tool_choice: "auto"`, it returns:
+
+```text
+400 "auto" tool choice requires --enable-auto-tool-choice and --tool-call-parser to be set
+```
+
+Your code must decide per request:
+
+- **Tool needed:** send `tools` with `tool_choice: "required"`. The model will always call a tool.
+- **No tool needed:** do not send `tools` at all.
+
+When sending tool results back for the final answer, leave out `tools` (or use `tool_choice: "none"`). Otherwise the request returns the same `400`.
+
+<Warning>
+Check `message.tool_calls`, not `finish_reason`. km/maxai returns `finish_reason: "stop"` even when it calls a tool.
+</Warning>
+
+<Warning>
+Do not use `"required"` for questions that don't need a tool. The model will still call one, sometimes with made-up arguments.
+</Warning>
+
+```javascript Node.js
+import OpenAI from 'openai'
+
+const client = new OpenAI({ baseURL: 'https://maxai.knowmax.in/llm', apiKey: process.env.MAXAI_API_KEY })
+const model = 'km/maxai'
+
+const tools = [{
+  type: 'function',
+  function: {
+    name: 'get_weather',
+    description: 'Get the current weather for a city',
+    parameters: { type: 'object', properties: { city: { type: 'string' } }, required: ['city'] }
+  }
+}]
+
+const functions = {
+  get_weather: ({ city }) => ({ city, temp_c: 31, sky: 'sunny' })
+}
+
+async function ask(prompt, { useTools }) {
+  const messages = [{ role: 'user', content: prompt }]
+
+  if (!useTools) {
+    const res = await client.chat.completions.create({ model, messages })
+    return res.choices[0].message.content
+  }
+
+  const first = await client.chat.completions.create({ model, messages, tools, tool_choice: 'required' })
+  const reply = first.choices[0].message
+
+  messages.push({ role: 'assistant', content: reply.content ?? '', tool_calls: reply.tool_calls })
+  for (const call of reply.tool_calls) {
+    const output = functions[call.function.name](JSON.parse(call.function.arguments))
+    messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(output) })
+  }
+
+  const final = await client.chat.completions.create({ model, messages })
+  return final.choices[0].message.content
+}
+
+await ask('What is the weather in Delhi?', { useTools: true })
+await ask('Say hi', { useTools: false })
+```
+
+## km/maxai2: the model decides
+
+- Send `tools` normally. The model calls a tool only when the question needs it; otherwise it replies with text.
+- Streaming works. Tool calls arrive in `delta.tool_calls` chunks.
+
+<Warning>
+Don't send `tools` together with `tool_choice: "none"`. Raw tool-call markup can appear in the reply text. Leave out `tools` instead.
+</Warning>
+
+<Tip>
+If you need the model to decide when to call tools, use km/maxai2.
+</Tip>

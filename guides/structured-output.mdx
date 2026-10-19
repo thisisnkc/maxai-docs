@@ -1,0 +1,87 @@
+---
+title: "Structured output"
+description: "Both chat models can return valid JSON using response_format."
+---
+
+## JSON mode
+
+`response_format: {"type": "json_object"}` makes the reply a JSON object. Describe the fields you want in the prompt.
+
+## JSON schema
+
+`response_format: {"type": "json_schema", ...}` constrains the reply to a schema you provide. Parse `message.content` as JSON.
+
+<CodeGroup>
+```python Python
+import json
+
+completion = client.chat.completions.create(
+    model="km/maxai",
+    messages=[{"role": "user", "content": "Extract the city and date: Meet in Pune on 4 May."}],
+    response_format={
+        "type": "json_schema",
+        "json_schema": {
+            "name": "event",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "city": {"type": "string"},
+                    "date": {"type": "string"},
+                },
+                "required": ["city", "date"],
+            },
+        },
+    },
+)
+
+event = json.loads(completion.choices[0].message.content)
+```
+
+```javascript Node.js
+const completion = await client.chat.completions.create({
+  model: "km/maxai",
+  messages: [{ role: "user", content: "Extract the city and date: Meet in Pune on 4 May." }],
+  response_format: {
+    type: "json_schema",
+    json_schema: {
+      name: "event",
+      schema: {
+        type: "object",
+        properties: {
+          city: { type: "string" },
+          date: { type: "string" },
+        },
+        required: ["city", "date"],
+      },
+    },
+  },
+});
+
+const event = JSON.parse(completion.choices[0].message.content);
+```
+
+```bash cURL
+curl "https://maxai.knowmax.in/llm/chat/completions" \
+  -H "Authorization: Bearer $MAXAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "km/maxai",
+    "messages": [{"role": "user", "content": "Extract the city and date: Meet in Pune on 4 May."}],
+    "response_format": {
+      "type": "json_schema",
+      "json_schema": {
+        "name": "event",
+        "schema": {
+          "type": "object",
+          "properties": {"city": {"type": "string"}, "date": {"type": "string"}},
+          "required": ["city", "date"]
+        }
+      }
+    }
+  }'
+```
+</CodeGroup>
+
+<Tip>
+On km/maxai2, leave room for thinking in `max_tokens`. A reply cut off with `finish_reason: "length"` is not valid JSON.
+</Tip>

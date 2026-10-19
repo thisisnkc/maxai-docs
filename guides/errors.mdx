@@ -1,0 +1,66 @@
+---
+title: "Errors"
+description: "MaxAI uses standard HTTP status codes. Error bodies differ between services, so match on the status code rather than the body shape."
+---
+
+## Chat errors
+
+| Status | Cause | Example |
+| --- | --- | --- |
+| `400` | Invalid body, for example `messages` is not a list | OpenAI-style `{"error": {...}}` |
+| `400` | Over the context window, km/maxai | `maximum context length is 26000 tokens` |
+| `400` | Over the context window, km/maxai2 | `type: exceed_context_size_error` with `n_prompt_tokens` and `n_ctx` |
+| `400` | `tools` sent to km/maxai | `"auto" tool choice requires ...` |
+| `401` | Missing or wrong API key | `{"error":"Unauthorized"}` |
+| `404` | Wrong path, or model doesn't match the base URL | `The model ... does not exist.` |
+| `500` | Unsupported `reasoning_effort` on km/maxai2 | `Unexpected reasoning effort ...` |
+
+## Embedding and reranker errors
+
+| Status | Cause | Body |
+| --- | --- | --- |
+| `401` | Missing or wrong API key | Empty |
+| `404` | `GET /rag/models` or `/rag2/models`; there is no model listing for embeddings | - |
+| `422` | Embeddings: more than 32 texts | `{"message", "code", "type"}` |
+| `422` | Reranker: more than 8 texts, or a text over 8,192 tokens with `truncate: false` | `{"error", "error_type"}` |
+
+## Handling errors
+
+The OpenAI SDK maps status codes to exception classes, so you can catch them by type.
+
+<CodeGroup>
+```python Python
+import openai
+
+try:
+    completion = client.chat.completions.create(model="km/maxai", messages=messages)
+except openai.AuthenticationError:   # 401: missing or wrong key
+    ...
+except openai.NotFoundError:         # 404: wrong path, or model/base URL mismatch
+    ...
+except openai.BadRequestError as e:  # 400: invalid body or over the context window
+    print(e.message)
+except openai.InternalServerError:   # 500: unsupported reasoning_effort
+    ...
+```
+
+```javascript Node.js
+try {
+  const completion = await client.chat.completions.create({ model: "km/maxai", messages });
+} catch (err) {
+  if (err instanceof OpenAI.AuthenticationError) { /* 401 */ }
+  else if (err instanceof OpenAI.NotFoundError) { /* 404 */ }
+  else if (err instanceof OpenAI.BadRequestError) { console.error(err.message); /* 400 */ }
+  else if (err instanceof OpenAI.InternalServerError) { /* 500 */ }
+  else throw err;
+}
+```
+
+```bash cURL
+# -i prints the status line and headers before the body
+curl -i "https://maxai.knowmax.in/llm/chat/completions" \
+  -H "Authorization: Bearer $MAXAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "km/maxai", "messages": "not a list"}'
+```
+</CodeGroup>

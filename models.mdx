@@ -1,0 +1,60 @@
+---
+title: "Models"
+description: "Two chat models are available. Each runs on its own base URL and uses the same API key."
+---
+
+## Comparison
+
+|  | km/maxai | km/maxai2 |
+| --- | --- | --- |
+| Base URL | `/llm` | `/llm2` |
+| Underlying model | Qwen 3 14B Instruct | Qwen 3.8-27B, thinking mode |
+| Thinking | No | Yes, in `reasoning_content` |
+| Context window | 26,000 tokens | 25,000 tokens |
+| Image input | Yes, 1 image per request | Not supported |
+| Max concurrent requests | 8 | 4 |
+| Tool calling | Not supported | Supported |
+
+## Choosing a model
+
+- Use **km/maxai** for fast, direct answers, summaries and JSON output.
+- Use **km/maxai2** when the task benefits from reasoning, or when you need [tool calling](/guides/tool-calling). Control how much it thinks with [reasoning_effort](/guides/thinking).
+
+## One client per model
+
+Each base URL serves only its own model. Requesting `km/maxai2` on `/llm`, or `km/maxai` on `/llm2`, returns `404 The model ... does not exist.` Create one client per model.
+
+<CodeGroup>
+```python Python
+import os
+from openai import OpenAI
+
+key = os.environ["MAXAI_API_KEY"]
+
+maxai = OpenAI(base_url="https://maxai.knowmax.in/llm", api_key=key)    # km/maxai
+maxai2 = OpenAI(base_url="https://maxai.knowmax.in/llm2", api_key=key)  # km/maxai2
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const apiKey = process.env.MAXAI_API_KEY;
+
+const maxai = new OpenAI({ baseURL: "https://maxai.knowmax.in/llm", apiKey });   // km/maxai
+const maxai2 = new OpenAI({ baseURL: "https://maxai.knowmax.in/llm2", apiKey }); // km/maxai2
+```
+
+```bash cURL
+# km/maxai
+curl "https://maxai.knowmax.in/llm/chat/completions" ...
+
+# km/maxai2
+curl "https://maxai.knowmax.in/llm2/chat/completions" ...
+```
+</CodeGroup>
+
+The OpenAI SDK requires the `model` field. With curl you can omit it and the server fills it in.
+
+## Concurrency
+
+Requests above a model's concurrency limit wait in a queue rather than fail. They return `200` but take longer. In testing, six parallel requests to km/maxai2 (limit 4) all succeeded; the slowest took about 5.5 seconds against roughly 3 seconds for the rest.

@@ -1,0 +1,37 @@
+---
+title: "Limits & defaults"
+description: "Each chat request has one shared token budget: 26,000 tokens on km/maxai and 25,000 on km/maxai2. Plan prompt size and max_tokens around it."
+---
+
+## Context window
+
+The budget covers everything in one request: the system prompt, every message in the conversation history, tool definitions, images (km/maxai), thinking (km/maxai2) and the answer.
+
+| Model | When the budget runs out |
+| --- | --- |
+| `km/maxai` | Input plus `max_tokens` is checked up front. If it doesn't fit, the request fails immediately with `400`. Without `max_tokens`, the reply runs until the window is full and stops with `finish_reason: "length"`. |
+| `km/maxai2` | No up-front check. A large `max_tokens` is accepted and the reply stops with `finish_reason: "length"` when the window fills. Thinking uses the same space, so the visible answer can be cut short or empty. |
+
+<Tip>
+In long conversations, trim older history or lower `max_tokens`. Always check for `finish_reason == "length"`, which means the answer was cut off.
+</Tip>
+
+## Rate and concurrency
+
+There are no rate limits and no rate-limit headers. Only the limits below apply.
+
+| Service | Limit |
+| --- | --- |
+| km/maxai | 8 concurrent requests; extra requests are queued |
+| km/maxai2 | 4 concurrent requests; extra requests are queued |
+| Embeddings (rag, rag2) | 32 texts per request, 512 tokens per text |
+| Reranker | 8 texts per request, 8,192 tokens per text |
+
+## Defaults
+
+| Setting | Default |
+| --- | --- |
+| `stream` | `false` |
+| `reasoning_effort` (km/maxai2) | `xhigh` |
+| Usage in streaming responses | Off, unless `stream_options: {"include_usage": true}` |
+| Reranker `truncate` | On; texts over 8,192 tokens are truncated |

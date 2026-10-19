@@ -1,0 +1,105 @@
+---
+title: "Quickstart"
+description: "Send your first chat completion in a few minutes. The examples use the OpenAI SDK; switch any code block to cURL for plain HTTP."
+---
+
+<Steps>
+<Step title="Install the SDK">
+Use the official `openai` package. No MaxAI-specific client is needed.
+
+<CodeGroup>
+```bash Python
+pip install openai
+```
+
+```bash Node.js
+npm install openai
+```
+
+```bash cURL
+# No install needed: curl ships with macOS, Linux and Windows
+```
+</CodeGroup>
+</Step>
+<Step title="Set your API key">
+Store the key in the `MAXAI_API_KEY` environment variable. Keep it out of source control.
+
+<CodeGroup>
+```bash Python
+export MAXAI_API_KEY="your-api-key"
+```
+
+```bash Node.js
+export MAXAI_API_KEY="your-api-key"
+```
+
+```bash cURL
+export MAXAI_API_KEY="your-api-key"
+```
+</CodeGroup>
+</Step>
+<Step title="Send a request">
+Create a client with the model's base URL and your key, then call `chat.completions.create`. The SDK appends `/chat/completions` itself.
+
+<CodeGroup>
+```python Python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://maxai.knowmax.in/llm",
+    api_key=os.environ["MAXAI_API_KEY"],
+)
+
+completion = client.chat.completions.create(
+    model="km/maxai",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "What is a context window?"},
+    ],
+)
+
+print(completion.choices[0].message.content)
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://maxai.knowmax.in/llm",
+  apiKey: process.env.MAXAI_API_KEY,
+});
+
+const completion = await client.chat.completions.create({
+  model: "km/maxai",
+  messages: [
+    { role: "system", content: "You are a helpful assistant." },
+    { role: "user", content: "What is a context window?" },
+  ],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+```bash cURL
+curl "https://maxai.knowmax.in/llm/chat/completions" \
+  -H "Authorization: Bearer $MAXAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "km/maxai",
+    "messages": [
+      {"role": "system", "content": "You are a helpful assistant."},
+      {"role": "user", "content": "What is a context window?"}
+    ]
+  }'
+```
+</CodeGroup>
+</Step>
+<Step title="Read the response">
+The answer is in `choices[0].message.content`. Check `choices[0].finish_reason`: `stop` means the model finished, `length` means the answer was cut off by the token limit.
+</Step>
+</Steps>
+
+<Warning>
+The SDK base URL must not end in `/chat/completions`. If it does, every call returns `404 {"detail":"Not Found"}`.
+</Warning>

@@ -1,0 +1,68 @@
+---
+title: "Authentication"
+description: "Every request is authenticated with an API key sent as a bearer token. The same key works for chat, embeddings and the reranker."
+---
+
+## Bearer token
+
+Send the key in the `Authorization` header on every request:
+
+```text
+Authorization: Bearer <MAXAI_API_KEY>
+```
+
+## With the SDK
+
+Pass the key as `api_key` (Python) or `apiKey` (Node.js) and the SDK sets the header for you. With curl, add the header yourself.
+
+<CodeGroup>
+```python Python
+import os
+from openai import OpenAI, AuthenticationError
+
+client = OpenAI(
+    base_url="https://maxai.knowmax.in/llm",
+    api_key=os.environ["MAXAI_API_KEY"],
+)
+
+try:
+    client.models.list()
+except AuthenticationError:
+    print("401: check MAXAI_API_KEY")
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://maxai.knowmax.in/llm",
+  apiKey: process.env.MAXAI_API_KEY,
+});
+
+try {
+  await client.models.list();
+} catch (err) {
+  if (err instanceof OpenAI.AuthenticationError) {
+    console.error("401: check MAXAI_API_KEY");
+  }
+}
+```
+
+```bash cURL
+curl "https://maxai.knowmax.in/llm/models" \
+  -H "Authorization: Bearer $MAXAI_API_KEY"
+```
+</CodeGroup>
+
+## Missing or invalid key
+
+A missing or wrong key returns HTTP `401`. The body depends on the service:
+
+| Service | 401 response body |
+| --- | --- |
+| Chat (`/llm`, `/llm2`) | `{"error":"Unauthorized"}` |
+| Embeddings and reranker | Empty body |
+
+<Info>
+The chat 401 body is not the usual OpenAI error shape, but the SDK still raises `AuthenticationError`, so standard error handling works.
+</Info>

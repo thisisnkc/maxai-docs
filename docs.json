@@ -1,0 +1,85 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "MaxAI",
+  "colors": {
+    "primary": "#0d7a68",
+    "light": "#2dd4bf",
+    "dark": "#0d7a68"
+  },
+  "fonts": {
+    "family": "Geist"
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.svg",
+  "icons": {
+    "library": "lucide"
+  },
+  "api": {
+    "playground": {
+      "display": "simple"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "authentication",
+              "models",
+              "limits"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/streaming",
+              "guides/thinking",
+              "guides/tool-calling",
+              "guides/structured-output",
+              "guides/image-input",
+              "guides/embeddings-reranking",
+              "guides/errors",
+              "guides/common-mistakes"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API reference",
+        "groups": [
+          {
+            "group": "Chat",
+            "pages": [
+              "api-reference/create-chat-completion",
+              "api-reference/list-models"
+            ]
+          },
+          {
+            "group": "Embeddings",
+            "pages": [
+              "api-reference/create-embeddings"
+            ]
+          },
+          {
+            "group": "Reranker",
+            "pages": [
+              "api-reference/rerank"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "styling": {
+    "codeblocks": "dark"
+  }
+}

@@ -1,0 +1,12 @@
+/** Method pills used in the Introduction endpoint table, matching the sidebar badges. */
+.method-badge {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+.method-post { background: #e8f0fe; color: #1d4ed8; }
+.method-get { background: #e7f6ec; color: #15803d; }
+.dark .method-post { background: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+.dark .method-get { background: rgba(34, 197, 94, 0.15); color: #86efac; }

@@ -1,0 +1,216 @@
+---
+title: "Create chat completion"
+description: "Generates a model response for a conversation. Works with both chat models; use /llm2 in place of /llm for km/maxai2."
+api: "POST https://maxai.knowmax.in/llm/chat/completions"
+---
+
+## Authorizations
+
+<ParamField header="Authorization" type="string" required>
+Bearer authentication header of the form `Bearer <MAXAI_API_KEY>`.
+</ParamField>
+
+## Body
+
+<ParamField body="model" type="string">
+Required in SDK. `km/maxai` or `km/maxai2`. Must match the base URL. curl requests may omit it.
+</ParamField>
+
+<ParamField body="messages" type="object[]" required>
+The conversation so far, oldest first.
+<Expandable title="properties">
+<ParamField body="role" type="enum">
+`system`, `user`, `assistant` or `tool`.
+</ParamField>
+
+<ParamField body="content" type="string">
+The message text. For km/maxai2 assistant turns, send back only `content`, not `reasoning_content`.
+</ParamField>
+</Expandable>
+</ParamField>
+
+<ParamField body="max_tokens" type="integer">
+Maximum tokens to generate. Input plus `max_tokens` must fit in 26,000 tokens on km/maxai. On km/maxai2 this includes thinking, so set it generously. `max_completion_tokens` is accepted as an alias.
+</ParamField>
+
+<ParamField body="stream" type="boolean" default="false">
+Return the response as server-sent events. See [Streaming](/guides/streaming).
+</ParamField>
+
+<ParamField body="stream_options" type="object">
+`{"include_usage": true}` adds a final chunk with token usage. Off by default.
+</ParamField>
+
+<ParamField body="temperature" type="number">
+Sampling temperature, as in the OpenAI API. `top_p` is also supported.
+</ParamField>
+
+<ParamField body="seed" type="integer">
+Accepted. Repeatable output is not guaranteed.
+</ParamField>
+
+<ParamField body="stop" type="string | string[]">
+Sequences where generation stops. On km/maxai2 a stop sequence can match inside the thinking and leave `content` empty.
+</ParamField>
+
+<ParamField body="n" type="integer">
+Number of choices to return.
+</ParamField>
+
+<ParamField body="response_format" type="object">
+`json_object` or `json_schema`. See [Structured output](/guides/structured-output).
+</ParamField>
+
+<ParamField body="tools" type="object[]">
+Functions the model may call. Supported on both models. On km/maxai, send `tool_choice` with every request that includes `tools`, and do not stream. See [Tool calling](/guides/tool-calling).
+</ParamField>
+
+<ParamField body="tool_choice" type="string | object" default="auto">
+`auto`, `required`, `none`, or `{"type": "function", "function": {"name": "..."}}` to force one function. km/maxai2 supports all values. km/maxai supports `required`, a named function and `none`; omitting it or sending `auto` returns `400`.
+</ParamField>
+
+<ParamField body="reasoning_effort" type="enum" default="xhigh">
+km/maxai2 only. `none`, `low`, `medium` or `xhigh`. `high` and `minimal` return `500`. See [Thinking](/guides/thinking).
+</ParamField>
+
+<ParamField body="chat_template_kwargs" type="object">
+km/maxai2 only. `{"enable_thinking": false}` turns thinking off.
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">
+Unique identifier for the completion.
+</ResponseField>
+
+<ResponseField name="object" type="string">
+`chat.completion`, or `chat.completion.chunk` when streaming.
+</ResponseField>
+
+<ResponseField name="choices" type="object[]">
+One entry per requested choice.
+<Expandable title="properties">
+<ResponseField name="message.content" type="string">
+The answer.
+</ResponseField>
+
+<ResponseField name="message.reasoning_content" type="string | null">
+km/maxai2 only. The model's thinking. Not in the OpenAI SDK types.
+</ResponseField>
+
+<ResponseField name="message.tool_calls" type="object[]">
+Tool calls requested by the model. Check this field, not `finish_reason`: km/maxai returns `stop` even when it calls a tool.
+</ResponseField>
+
+<ResponseField name="finish_reason" type="string">
+`stop`, `length` (cut off by the token limit) or `tool_calls` (km/maxai2 only).
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+`prompt_tokens`, `completion_tokens` (includes thinking on km/maxai2) and `total_tokens`. `prompt_tokens_details` is `null` on km/maxai and contains `cached_tokens` on km/maxai2.
+</ResponseField>
+
+<RequestExample>
+```python Python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://maxai.knowmax.in/llm",
+    api_key=os.environ["MAXAI_API_KEY"],
+)
+
+completion = client.chat.completions.create(
+    model="km/maxai",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "What is a context window?"},
+    ],
+)
+
+print(completion.choices[0].message.content)
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://maxai.knowmax.in/llm",
+  apiKey: process.env.MAXAI_API_KEY,
+});
+
+const completion = await client.chat.completions.create({
+  model: "km/maxai",
+  messages: [
+    { role: "system", content: "You are a helpful assistant." },
+    { role: "user", content: "What is a context window?" },
+  ],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+```bash cURL
+curl "https://maxai.knowmax.in/llm/chat/completions" \
+  -H "Authorization: Bearer $MAXAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "km/maxai",
+    "messages": [
+      {"role": "system", "content": "You are a helpful assistant."},
+      {"role": "user", "content": "What is a context window?"}
+    ]
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "id": "chatcmpl-8f2c1e",
+  "object": "chat.completion",
+  "created": 1760342400,
+  "model": "km/maxai",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "A context window is the maximum number of tokens..."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 28,
+    "completion_tokens": 41,
+    "total_tokens": 69
+  }
+}
+```
+
+```json 400
+{
+  "error": {
+    "message": "'max_tokens' or 'max_completion_tokens' is too large: 2000 ... (2000 > 26000 - 25534)",
+    "type": "BadRequestError",
+    "code": 400
+  }
+}
+```
+
+```json 401
+{"error":"Unauthorized"}
+```
+
+```json 404
+{
+  "error": {
+    "message": "The model km/maxai2 does not exist.",
+    "code": 404
+  }
+}
+```
+</ResponseExample>

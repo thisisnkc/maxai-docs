@@ -1,0 +1,89 @@
+---
+title: "Embeddings & reranking"
+description: "Use the embedding models to turn text into vectors for semantic search, then the reranker to order the best candidates by relevance."
+---
+
+## Embedding models
+
+|  | rag | rag2 |
+| --- | --- | --- |
+| Model | intfloat/multilingual-e5-large | intfloat/multilingual-e5-small |
+| SDK base URL | `https://maxai.knowmax.in/rag` | `https://maxai.knowmax.in/rag2` |
+| Dimensions | 1024 | 384 |
+| Max input per text | 512 tokens | 512 tokens |
+| Max texts per request | 32 | 32 |
+
+Embeddings work with the OpenAI SDK through `client.embeddings.create`. See [Create embeddings](/api-reference/create-embeddings) for the full reference.
+
+## Query and passage prefixes
+
+The e5 models expect a prefix on every input: `"query: "` for search queries and `"passage: "` for the documents you index.
+
+## Chunking and batches
+
+<Warning>
+Input over 512 tokens is silently truncated to 512, even with `truncate: false`. Split documents into chunks of 512 tokens or fewer.
+</Warning>
+
+Send at most 32 texts per request. More returns `422 batch size 40 > maximum allowed batch size 32`.
+
+## Working with vectors
+
+- Vectors are normalized to length 1, so the dot product equals cosine similarity.
+- The same text in the same request always returns the same vector.
+- `encoding_format: "base64"` is supported. The Node.js SDK uses base64 by default and decodes it for you.
+- `dimensions` is accepted and shortens the vector, but the e5 models are not trained for it. We recommend leaving it unset.
+
+## Reranking
+
+The reranker is not OpenAI-compatible, so call it over plain HTTP. It accepts up to 8 texts per request. For more candidates, split them into groups of 8, offset each result's `index`, and merge by score.
+
+<CodeGroup>
+```python Python
+import os
+import requests
+
+URL = "https://maxai.knowmax.in/tei/rerank"
+HEADERS = {"Authorization": f"Bearer {os.environ['MAXAI_API_KEY']}"}
+
+def rerank(query, texts):
+    results = []
+    for start in range(0, len(texts), 8):          # max 8 texts per request
+        batch = texts[start:start + 8]
+        r = requests.post(URL, headers=HEADERS, json={"query": query, "texts": batch})
+        r.raise_for_status()
+        for item in r.json():
+            results.append({"index": start + item["index"], "score": item["score"]})
+    return sorted(results, key=lambda x: x["score"], reverse=True)
+```
+
+```javascript Node.js
+const URL = "https://maxai.knowmax.in/tei/rerank";
+
+async function rerank(query, texts) {
+  const results = [];
+  for (let start = 0; start < texts.length; start += 8) { // max 8 per request
+    const res = await fetch(URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.MAXAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query, texts: texts.slice(start, start + 8) }),
+    });
+    for (const item of await res.json()) {
+      results.push({ index: start + item.index, score: item.score });
+    }
+  }
+  return results.sort((a, b) => b.score - a.score);
+}
+```
+
+```bash cURL
+# One request scores up to 8 texts. Batch larger sets client-side.
+curl "https://maxai.knowmax.in/tei/rerank" \
+  -H "Authorization: Bearer $MAXAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "how do I reset my password?", "texts": ["...", "..."]}'
+```
+</CodeGroup>

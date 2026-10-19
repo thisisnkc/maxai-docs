@@ -1,0 +1,123 @@
+---
+title: "Create embeddings"
+description: "Returns a vector for each input text. Use /rag for multilingual-e5-large (1024 dimensions) or /rag2 for multilingual-e5-small (384 dimensions)."
+api: "POST https://maxai.knowmax.in/rag/embeddings"
+---
+
+## Authorizations
+
+<ParamField header="Authorization" type="string" required>
+Bearer authentication header of the form `Bearer <MAXAI_API_KEY>`.
+</ParamField>
+
+## Body
+
+<ParamField body="input" type="string | string[]" required>
+Up to 32 texts. Each is truncated to 512 tokens without an error. Prefix queries with `"query: "` and documents with `"passage: "`.
+</ParamField>
+
+<ParamField body="model" type="string">
+Required in SDK. Ignored by the server; the base URL selects the model. The SDK still requires it, so send the documented model name.
+</ParamField>
+
+<ParamField body="encoding_format" type="enum">
+`float` or `base64`. The Node.js SDK requests base64 and decodes it automatically.
+</ParamField>
+
+<ParamField body="dimensions" type="integer">
+Accepted and shortens the vector. Not recommended; e5 models are not trained for shortened vectors.
+</ParamField>
+
+## Response
+
+<ResponseField name="data" type="object[]">
+One entry per input, with `index` and `embedding`. Vectors are normalized to length 1.
+</ResponseField>
+
+<ResponseField name="model" type="string">
+`/models/e5-large` or `/models/e5-small`, whatever `model` you sent.
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+`prompt_tokens` and `total_tokens`. A value of 512 for one text means it was truncated.
+</ResponseField>
+
+<RequestExample>
+```python Python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://maxai.knowmax.in/rag",   # not .../rag/embeddings
+    api_key=os.environ["MAXAI_API_KEY"],
+)
+
+result = client.embeddings.create(
+    model="intfloat/multilingual-e5-large",
+    input=[
+        "query: how do I reset my password?",
+        "passage: To reset your password, open Settings > Security.",
+    ],
+)
+
+vector = result.data[0].embedding  # 1024 floats
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://maxai.knowmax.in/rag", // not .../rag/embeddings
+  apiKey: process.env.MAXAI_API_KEY,
+});
+
+const result = await client.embeddings.create({
+  model: "intfloat/multilingual-e5-large",
+  input: [
+    "query: how do I reset my password?",
+    "passage: To reset your password, open Settings > Security.",
+  ],
+});
+
+const vector = result.data[0].embedding; // 1024 floats
+```
+
+```bash cURL
+curl "https://maxai.knowmax.in/rag/embeddings" \
+  -H "Authorization: Bearer $MAXAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "intfloat/multilingual-e5-large",
+    "input": [
+      "query: how do I reset my password?",
+      "passage: To reset your password, open Settings > Security."
+    ]
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "object": "list",
+  "data": [
+    { "object": "embedding", "index": 0, "embedding": [0.0213, -0.0141, ...] },
+    { "object": "embedding", "index": 1, "embedding": [0.0187, -0.0093, ...] }
+  ],
+  "model": "/models/e5-large",
+  "usage": { "prompt_tokens": 24, "total_tokens": 24 }
+}
+```
+
+```text 401
+(empty body)
+```
+
+```json 422
+{
+  "message": "batch size 40 > maximum allowed batch size 32",
+  "code": 422,
+  "type": "Validation"
+}
+```
+</ResponseExample>
