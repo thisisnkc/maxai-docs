@@ -10,3 +10,7 @@
 .method-get { background: #e7f6ec; color: #15803d; }
 .dark .method-post { background: rgba(59, 130, 246, 0.15); color: #93c5fd; }
 .dark .method-get { background: rgba(34, 197, 94, 0.15); color: #86efac; }
+
+/** Search needs a Mintlify login in self-hosted mode, so the trigger is hidden. */
+#search-bar-entry,
+#search-bar-entry-mobile { display: none !important; }

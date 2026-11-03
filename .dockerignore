@@ -1,0 +1,6 @@
+.git
+node_modules
+.mintlify
+Dockerfile
+compose.yaml
+nginx
